@@ -84,7 +84,9 @@
         }
 
         function formatTimestamp(dateStr) {
-
+            if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+                dateStr += 'Z';
+            }
             const date = new Date(dateStr);
 
             const options = {
