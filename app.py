@@ -93,7 +93,7 @@ def fetch_bus_data():
         except Exception as e:
             print(f"Error fetching data: {e}")
             
-        time.sleep(30)  # Wait 30 seconds before next update
+        time.sleep(15)  # Wait 30 seconds before next update
 
 # Start the background thread for data fetching
 fetch_thread = threading.Thread(target=fetch_bus_data, daemon=True)
