@@ -75,10 +75,7 @@
             };
         }
         
-        function formatLocalTime(utcTimeString) {
-            const date = new Date(utcTimeString);
-            return date.toLocaleTimeString();
-        }
+      
         
         function createPopupContent(bus) {
             return `
@@ -86,10 +83,10 @@
                     <table>
                         <tr><td>Vehicle ID:</td><td>${bus.vehicle_id}</td></tr>
                         <tr><td>Route:</td><td>${bus.route_id || 'N/A'}</td></tr>
-                        <tr><td>Speed:</td><td>${(bus.speed * 3.6).toFixed(1)} km/h</td></tr>
+                        <tr><td>Speed:</td><td>${(bus.speed).toFixed(1)} km/h</td></tr>
                         <tr><td>Bearing:</td><td>${bus.bearing}°</td></tr>
                         <tr><td>Wheelchair:</td><td>${bus.wheelchair_accessible ? 'Yes' : 'No'}</td></tr>
-                        <tr><td>Updated:</td><td>${formatLocalTime(bus.timestamp)}</td></tr>
+                        <tr><td>Updated:</td><td>${bus.timestamp}</td></tr>
                     </table>
                 </div>`;
         }
