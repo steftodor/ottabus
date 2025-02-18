@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OC Transpo Bus Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <style>
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        .bus-popup {
+            font-size: 14px;
+        }
+        .bus-popup table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .bus-popup td {
+            padding: 4px;
+            border-bottom: 1px solid #eee;
+        }
+        .bus-popup td:first-child {
+            font-weight: bold;
+            width: 40%;
+        }
+        #refresh-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: #f0f0f0;
+            z-index: 1000;
+        }
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background: red;
+            transition: width 0.1s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="refresh-progress">
+        <div id="progress-bar"></div>
+    </div>
+    <div id="map"></div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script>
+        // Initialize map centered on Ottawa
+        const map = L.map('map').setView([45.4215, -75.6972], 12);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        
+        let busMarkers = [];
+        let progressBar = document.getElementById('progress-bar');
+        let lastUpdateTime = new Date();
+        
+        // Custom bus icon based on bearing
+        function createBusIcon(bearing) {
+            const icon = L.icon({
+                iconUrl: '/static/markers/bus.png',
+                iconSize: [64, 32],
+                iconAnchor: [32, 32],
+                popupAnchor: [0, -16]
+            });
+            
+            return {
+                icon: icon,
+                rotationAngle: bearing,
+                rotationOrigin: 'center center'
+            };
+        }
+        
+        function formatLocalTime(utcTimeString) {
+            const date = new Date(utcTimeString);
+            return date.toLocaleTimeString();
+        }
+        
+        function createPopupContent(bus) {
+            return `
+                <div class="bus-popup">
+                    <table>
+                        <tr><td>Vehicle ID:</td><td>${bus.vehicle_id}</td></tr>
+                        <tr><td>Route:</td><td>${bus.route_id || 'N/A'}</td></tr>
+                        <tr><td>Speed:</td><td>${(bus.speed * 3.6).toFixed(1)} km/h</td></tr>
+                        <tr><td>Bearing:</td><td>${bus.bearing}°</td></tr>
+                        <tr><td>Wheelchair:</td><td>${bus.wheelchair_accessible ? 'Yes' : 'No'}</td></tr>
+                        <tr><td>Updated:</td><td>${formatLocalTime(bus.timestamp)}</td></tr>
+                    </table>
+                </div>`;
+        }
+        
+        function updateProgressBar() {
+            const now = new Date();
+            const elapsed = (now - lastUpdateTime) / 1000;
+            const progress = (elapsed / 30) * 100;
+            progressBar.style.width = Math.min(progress, 100) + '%';
+            
+            if (progress < 100) {
+                requestAnimationFrame(updateProgressBar);
+            }
+        }
+        
+        function updateBuses() {
+            fetch('/api/buses')
+                .then(response => response.json())
+                .then(buses => {
+                    // Remove existing markers
+                    busMarkers.forEach(marker => marker.remove());
+                    busMarkers = [];
+                    
+                    // Add new markers
+                    buses.forEach(bus => {
+                        const marker = L.marker([bus.latitude, bus.longitude], createBusIcon(bus.bearing)).addTo(map);
+                        marker.bindPopup(createPopupContent(bus));
+                        busMarkers.push(marker);
+                    });
+                    
+                    // Reset and start progress bar
+                    lastUpdateTime = new Date();
+                    progressBar.style.width = '0%';
+                    requestAnimationFrame(updateProgressBar);
+                })
+                .catch(error => console.error('Error fetching bus data:', error));
+        }
+        
+        // Update buses immediately and every 30 seconds
+        updateBuses();
+        setInterval(updateBuses, 30000);
+    </script>
+</body>
+</html>
